@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { response } from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
@@ -28,6 +28,46 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   //   the filtered image file [!!TIP res.sendFile(filteredpath); might be useful]
 
   /**************************************************************************** */
+  app.get( "/filteredimage", async ( req, res ) => {
+    console.info(`-----------------------------`)
+
+    let {image_url} = req.query;
+    if(image_url==null || image_url==''){
+      res.status(400).send(`Parameter image_url not found!`);
+
+      return;
+    }
+
+    console.debug(`Processing image from URL=${image_url}`);
+
+    try {
+      var local_image_path = await filterImageFromURL(image_url);
+
+      console.debug(`Found local image path=${local_image_path}`);
+    
+      res.status(200).sendFile(local_image_path, function(err){
+
+        if(err){
+          console.error(`Found error while write out the response:${err}`);
+        }else{
+          console.debug(`Deleting temporary image path=${local_image_path}`);
+          var del_image_local_path_arr = [local_image_path];
+          deleteLocalFiles(del_image_local_path_arr);
+        }
+      });
+    } catch (error) {
+      console.error(`Found error while processing image Error=${error}`);
+      res.status(500).send(`Processing image error:${error}`);
+    }
+
+
+  } );
+
+  process.on('unhandledRejection', function(err) {
+    console.log(err);
+
+    response.status(500);
+  });
 
   //! END @TODO1
   
